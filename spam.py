@@ -1,12 +1,10 @@
 import asyncio
 import random
 from hikariatama.loader import Loader, Module
-from pyrogram import filters
 
 @Loader.tds
-class SpamModule(Module):
-    """Модуль для спама через Hikka"""
-    strings = {"name": "SpamModule"}
+class HardSpam(Module):
+    strings = {"name": "HardSpam"}
 
     def __init__(self):
         self.spam_active = False
@@ -49,70 +47,59 @@ class SpamModule(Module):
         ]
 
     async def setgroupcmd(self, message):
-        """Установить чат для спама: .setgroup [id] или просто в чате"""
-        try:
-            args = message.text.split()
-            if len(args) > 1:
-                self.target_group_id = int(args[1])
-                await message.edit(f"Целевая группа установлена: {self.target_group_id}")
-            else:
-                self.target_group_id = message.chat.id
-                await message.edit(f"Текущая группа установлена как целевая: {self.target_group_id}")
-        except Exception as e:
-            await message.edit(f"Ошибка: {e}")
+        """Задать группу для спама"""
+        args = message.text.split()
+        if len(args) > 1:
+            self.target_group_id = int(args[1])
+            await message.edit(f"Группа: {self.target_group_id}")
+        else:
+            self.target_group_id = message.chat.id
+            await message.edit(f"Группа: {self.target_group_id}")
 
     async def setlimitcmd(self, message):
-        """Установить лимит сообщений: .setlimit [число]"""
-        try:
-            args = message.text.split()
-            self.message_limit = int(args[1])
-            await message.edit(f"Лимит установлен: {self.message_limit}")
-        except Exception:
-            await message.edit("Использование: .setlimit [число]")
+        """Задать лимит"""
+        args = message.text.split()
+        self.message_limit = int(args[1])
+        await message.edit(f"Лимит: {self.message_limit}")
 
     async def setdelaycmd(self, message):
-        """Установить задержку в секундах: .setdelay [секунды]"""
-        try:
-            args = message.text.split()
-            self.message_interval = int(args[1])
-            await message.edit(f"Интервал установлен: {self.message_interval}с")
-        except Exception:
-            await message.edit("Использование: .setdelay [секунды]")
+        """Задать задержку"""
+        args = message.text.split()
+        self.message_interval = int(args[1])
+        await message.edit(f"Интервал: {self.message_interval}с")
 
     async def startspamcmd(self, message):
-        """Запустить спам: .startspam"""
+        """Запустить спам"""
         if self.target_group_id is None:
             self.target_group_id = message.chat.id
 
         if self.spam_active:
-            await message.edit("Спам уже запущен.")
+            await message.edit("Уже запущен.")
             return
 
         self.spam_active = True
-        await message.edit(f"Спам запущен в группе {self.target_group_id}.")
+        await message.edit("Спам запущен.")
         
         sent_count = 0
-        try:
-            while self.spam_active:
-                if self.message_limit > 0 and sent_count >= self.message_limit:
-                    self.spam_active = False
-                    await self.client.send_message(self.target_group_id, "Лимит исчерпан.")
-                    break
+        while self.spam_active:
+            if self.message_limit > 0 and sent_count >= self.message_limit:
+                self.spam_active = False
+                break
 
-                phrase = random.choice(self.phrases)
+            phrase = random.choice(self.phrases)
+            try:
                 await self.client.send_message(self.target_group_id, phrase)
                 sent_count += 1
-                
-                for _ in range(self.message_interval):
-                    if not self.spam_active:
-                        break
-                    await asyncio.sleep(1)
-        except Exception as e:
-            self.spam_active = False
-            print(f"Ошибка спама: {e}")
+            except Exception:
+                pass
+            
+            for _ in range(self.message_interval):
+                if not self.spam_active:
+                    break
+                await asyncio.sleep(1)
 
     async def stopspamcmd(self, message):
-        """Остановить спам: .stopspam"""
+        """Остановить спам"""
         self.spam_active = False
         await message.edit("Спам остановлен.")
-        
+    
